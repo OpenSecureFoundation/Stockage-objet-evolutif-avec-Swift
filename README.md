@@ -17,3 +17,6 @@ Prerequis : Installation des dependances pour communiquer avec openstack et open
     . Injecter grace a la commande <<source user.openrc>> ces variables dans la session actuelle de votre terminal
 
 2. Lancer le programme
+
+
+NB : un exemple du fichier de configuration est present dans le dossier config a la racine du projet 
