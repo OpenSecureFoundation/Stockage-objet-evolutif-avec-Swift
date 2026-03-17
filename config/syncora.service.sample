@@ -1,0 +1,44 @@
+[Unit]
+Description=Service de Synchronisation Syncora Cloud (OpenStack) - SAMPLE
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# REMPLACER : 'username' par le nom de l'utilisateur Linux qui exécutera le script
+User=username
+Group=username
+
+# Dossier personnel de l'utilisateur Linux (important pour Python/OpenStack)
+Environment=HOME=/home/username
+
+# --- CONFIGURATION OPENSTACK ---
+# L'URL de votre service Keystone (ex: http://votre-ip:5000/v3)
+Environment="OS_AUTH_URL=http://votre-controller:5000/v3"
+
+# Le nom du projet (Tenant) OpenStack
+Environment="OS_PROJECT_NAME=nom_du_projet"
+
+# Vos identifiants de connexion OpenStack
+Environment="OS_USERNAME=votre_utilisateur"
+Environment="OS_PASSWORD=votre_mot_de_passe"
+
+# Paramètres de domaine (souvent 'Default' sur les installs standards)
+Environment="OS_PROJECT_DOMAIN_NAME=Default"
+Environment="OS_USER_DOMAIN_NAME=Default"
+
+# Versions des APIs (Ne pas modifier sauf besoin spécifique)
+Environment="OS_IDENTITY_API_VERSION=3"
+Environment="OS_IMAGE_API_VERSION=2"
+
+# REMPLACER : Le chemin absolu vers le dossier de votre application
+WorkingDirectory=/chemin/vers/votre/projet/C_syncora_v2
+
+# REMPLACER : Le chemin vers l'exécutable (ex: /usr/local/bin/syncora)
+ExecStart=/usr/local/bin/syncora
+
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
