@@ -11,6 +11,9 @@ Projet de stockage objet évolutif avec OpenStack Swift
 Avant de commencer, assurez-vous d'avoir les dépendances nécessaires pour communiquer avec le Cloud OpenStack 
     . sudo apt update
     . sudo apt install python3-swiftclient python3-openstackclient
+Configurer le fichier /etc/hosts en ajoutant le ligne :  
+    . IP_ADDRESS  controller (adresse ip du controller openstack)
+
 
 # PROCEDURE D'INSTALLATION ET DE CONFIGURATION 
 
