@@ -7,14 +7,12 @@
 #include "swift.h"
 
 void monitor_directory(FolderState *state) {
-    // 1. EXTRACTION DU NOM DU CONTENEUR
-    // state->folder_name est par ex: "/home/valdez/Documents/Syncora/cours-1"
-    // On veut extraire uniquement "cours-1" pour les commandes Swift
+ 
     const char *full_folder_path = state->folder_name;
     char *container_name = strrchr(full_folder_path, '/');
     
     if (container_name) {
-        container_name++; // On saute le '/' pour avoir "cours-1"
+        container_name++; 
     } else {
         container_name = (char *)full_folder_path;
     }
@@ -26,7 +24,6 @@ void monitor_directory(FolderState *state) {
     int current_count = 0;
     struct dirent *entry;
 
-    // 2. LECTURE DU DOSSIER LOCAL
     while ((entry = readdir(dir)) != NULL && current_count < MAX_FILES) {
         if (entry->d_name[0] == '.') continue; 
 
@@ -42,7 +39,6 @@ void monitor_directory(FolderState *state) {
     }
     closedir(dir);
 
-    // 3. DÉTECTION CRÉATION ET MODIFICATION
     for (int i = 0; i < current_count; i++) {
         int found = 0;
         char full_file_path[2048];
@@ -53,7 +49,6 @@ void monitor_directory(FolderState *state) {
                 found = 1;
                 if (current_files[i].last_modified != state->previous_files[j].last_modified) {
                     printf("[MODIF] %s dans %s\n", current_files[i].name, container_name);
-                    // On envoie le nom du conteneur et le chemin local complet
                     swift_upload(container_name, full_file_path); 
                 }
                 break;
@@ -66,7 +61,6 @@ void monitor_directory(FolderState *state) {
         }
     }
 
-    // 4. DÉTECTION SUPPRESSION
     for (int i = 0; i < state->previous_count; i++) {
         int found = 0;
         for (int j = 0; j < current_count; j++) {
@@ -82,7 +76,6 @@ void monitor_directory(FolderState *state) {
         }
     }
 
-    // 5. MISE À JOUR DE L'ÉTAT POUR LE PROCHAIN SCAN
     state->previous_count = current_count;
     memcpy(state->previous_files, current_files, sizeof(current_files));
 }

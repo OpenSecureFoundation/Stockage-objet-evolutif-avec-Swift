@@ -10,17 +10,14 @@ void setup_containers() {
     char container_name[256];
     char base_path[512];
     
-    // RÉCUPÉRATION DYNAMIQUE : lit /home/NOM_UTILISATEUR
     char *home = getenv("HOME");
     if (home == NULL) {
         fprintf(stderr, "Erreur : Impossible de trouver le dossier personnel.\n");
         return;
     }
 
-    // Construction du chemin racine ~/Documents/Syncora
     snprintf(base_path, sizeof(base_path), "%s/Documents/Syncora", home);
 
-    // Création du dossier racine (0755 = droits standards)
     mkdir(base_path, 0755);
 
     fp = popen("swift list", "r");

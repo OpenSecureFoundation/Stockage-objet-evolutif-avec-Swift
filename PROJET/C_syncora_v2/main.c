@@ -12,10 +12,8 @@ int main() {
         return 1;
     }
 
-    // Initialisation physique des dossiers dans Documents/Syncora
     setup_containers();
 
-    // Allocation dynamique (Heap) pour éviter le Segfault
     FolderState *states = malloc(sizeof(FolderState) * MAX_CONTAINERS);
     if (!states) {
         perror("Erreur allocation mémoire");
@@ -35,7 +33,6 @@ int main() {
     while (fgets(name, sizeof(name), fp) && count < MAX_CONTAINERS) {
         name[strcspn(name, "\n")] = 0;
         if (strlen(name) > 0) {
-            // Utilisation sécurisée de sizeof pour folder_name (1024 octets)
             snprintf(states[count].folder_name, sizeof(states[count].folder_name), 
                      "%s/Documents/Syncora/%s", home, name);
             states[count].previous_count = 0;
@@ -51,7 +48,7 @@ int main() {
         for (int i = 0; i < count; i++) {
             monitor_directory(&states[i]);
         }
-        sleep(5); // Cycle de 5 secondes
+        sleep(5); 
     }
 
     free(states);

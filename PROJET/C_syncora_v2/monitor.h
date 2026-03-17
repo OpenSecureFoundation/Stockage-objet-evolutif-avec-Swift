@@ -12,7 +12,7 @@ typedef struct {
 } file_info;
 
 typedef struct {
-    char folder_name[1024]; // Taille augmentée pour les chemins longs
+    char folder_name[1024]; 
     file_info previous_files[MAX_FILES];
     int previous_count;
 } FolderState;
