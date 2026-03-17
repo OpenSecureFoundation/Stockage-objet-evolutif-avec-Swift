@@ -1,32 +1,36 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "swift.h"
 #include <string.h>
+#include "swift.h"
 
-// Dans swift.c, modification optionnelle mais recommandée
 void swift_upload(const char *container, const char *filepath) {
     char command[2048];
-    // On extrait le nom de fichier du chemin (après le dernier /)
+    
+    // On extrait le nom du fichier (ex: photo.jpg) du chemin complet
     char *filename = strrchr(filepath, '/');
     if (filename) filename++; else filename = (char *)filepath;
 
-    // --object-name force le nom sur le cloud sans le chemin local
+    // SECURITÉ : Si le container est vide ou nul, on arrête
+    if (!container || strlen(container) == 0) {
+        fprintf(stderr, "[ERREUR] Nom de conteneur invalide\n");
+        return;
+    }
+
+    // Commande Swift : on utilise -S pour la simplicité
+    // On force l'objet à s'appeler uniquement 'filename'
     snprintf(command, sizeof(command),
              "swift upload %s '%s' --object-name '%s'",
              container, filepath, filename);
 
+    printf("[SYNC-CLOUD] Uploading to %s: %s\n", container, filename);
     system(command);
 }
 
 void swift_delete(const char *container, const char *filename) {
     char command[2048];
+    if (!container || strlen(container) == 0) return;
 
-    // Construction de la commande : swift delete conteneur 'nom_du_fichier'
-    snprintf(command, sizeof(command),
-             "swift delete %s '%s'",
-             container, filename);
-
+    snprintf(command, sizeof(command), "swift delete %s '%s'", container, filename);
     printf("[SYNC-CLOUD] Deleting from %s: %s\n", container, filename);
-
     system(command);
 }

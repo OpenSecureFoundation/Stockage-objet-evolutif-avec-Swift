@@ -7,23 +7,34 @@
 #include "swift.h"
 
 void monitor_directory(FolderState *state) {
-    const char *path = state->folder_name;
-    DIR *dir = opendir(path);
+    // 1. EXTRACTION DU NOM DU CONTENEUR
+    // state->folder_name est par ex: "/home/valdez/Documents/Syncora/cours-1"
+    // On veut extraire uniquement "cours-1" pour les commandes Swift
+    const char *full_folder_path = state->folder_name;
+    char *container_name = strrchr(full_folder_path, '/');
+    
+    if (container_name) {
+        container_name++; // On saute le '/' pour avoir "cours-1"
+    } else {
+        container_name = (char *)full_folder_path;
+    }
+
+    DIR *dir = opendir(full_folder_path);
     if (!dir) return;
 
     file_info current_files[MAX_FILES];
     int current_count = 0;
     struct dirent *entry;
 
-    // 1. Lecture du dossier
+    // 2. LECTURE DU DOSSIER LOCAL
     while ((entry = readdir(dir)) != NULL && current_count < MAX_FILES) {
         if (entry->d_name[0] == '.') continue; 
 
-        char fullpath[512];
-        snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
+        char full_file_path[2048];
+        snprintf(full_file_path, sizeof(full_file_path), "%s/%s", full_folder_path, entry->d_name);
         
         struct stat st;
-        if (stat(fullpath, &st) == 0 && S_ISREG(st.st_mode)) {
+        if (stat(full_file_path, &st) == 0 && S_ISREG(st.st_mode)) {
             strncpy(current_files[current_count].name, entry->d_name, 255);
             current_files[current_count].last_modified = st.st_mtime;
             current_count++;
@@ -31,34 +42,31 @@ void monitor_directory(FolderState *state) {
     }
     closedir(dir);
 
-    // 2. Détection création et modification
+    // 3. DÉTECTION CRÉATION ET MODIFICATION
     for (int i = 0; i < current_count; i++) {
         int found = 0;
-        // On garde fullpath pour que la commande locale trouve le fichier sur le disque
-        char fullpath[512];
-        snprintf(fullpath, sizeof(fullpath), "%s/%s", path, current_files[i].name);
+        char full_file_path[2048];
+        snprintf(full_file_path, sizeof(full_file_path), "%s/%s", full_folder_path, current_files[i].name);
 
         for (int j = 0; j < state->previous_count; j++) {
             if (strcmp(current_files[i].name, state->previous_files[j].name) == 0) {
                 found = 1;
                 if (current_files[i].last_modified != state->previous_files[j].last_modified) {
-                    printf("[MODIF] %s\n", current_files[i].name);
-                    
-                    // ON PASSE LE CHEMIN COMPLET POUR L'UPLOAD (pour que swift trouve le fichier local)
-                    // MAIS Swift créera l'objet avec le nom du fichier seulement
-                    swift_upload(path, fullpath); 
+                    printf("[MODIF] %s dans %s\n", current_files[i].name, container_name);
+                    // On envoie le nom du conteneur et le chemin local complet
+                    swift_upload(container_name, full_file_path); 
                 }
                 break;
             }
         }
 
         if (!found) {
-            printf("[NEW] %s\n", current_files[i].name);
-            swift_upload(path, fullpath); 
+            printf("[NEW] %s dans %s\n", current_files[i].name, container_name);
+            swift_upload(container_name, full_file_path); 
         }
     }
 
-    // 3. 🔍 Détection suppression (C'est ici que ça changeait !)
+    // 4. DÉTECTION SUPPRESSION
     for (int i = 0; i < state->previous_count; i++) {
         int found = 0;
         for (int j = 0; j < current_count; j++) {
@@ -69,13 +77,12 @@ void monitor_directory(FolderState *state) {
         }
 
         if (!found) {
-            printf("[DEL] %s\n", state->previous_files[i].name);
-            // ON ENVOIE UNIQUEMENT LE NOM DU FICHIER (sans le prefixe dossier/)
-            swift_delete(path, state->previous_files[i].name);
+            printf("[DEL] %s de %s\n", state->previous_files[i].name, container_name);
+            swift_delete(container_name, state->previous_files[i].name);
         }
     }
 
-    // 4. Mise à jour de l'état
+    // 5. MISE À JOUR DE L'ÉTAT POUR LE PROCHAIN SCAN
     state->previous_count = current_count;
     memcpy(state->previous_files, current_files, sizeof(current_files));
 }

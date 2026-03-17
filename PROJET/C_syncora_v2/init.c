@@ -2,39 +2,44 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <sys/types.h>
+#include <unistd.h>
 #include "init.h"
 
 void setup_containers() {
     FILE *fp;
     char container_name[256];
-
-    // On récupère la liste des conteneurs via Swift
-    fp = popen("swift list", "r");
-    if (fp == NULL) {
-        perror("Erreur lors de l'appel à swift list");
+    char base_path[512];
+    
+    // RÉCUPÉRATION DYNAMIQUE : lit /home/NOM_UTILISATEUR
+    char *home = getenv("HOME");
+    if (home == NULL) {
+        fprintf(stderr, "Erreur : Impossible de trouver le dossier personnel.\n");
         return;
     }
 
-    printf("\n--- Initialisation des dossiers ---\n");
+    // Construction du chemin racine ~/Documents/Syncora
+    snprintf(base_path, sizeof(base_path), "%s/Documents/Syncora", home);
+
+    // Création du dossier racine (0755 = droits standards)
+    mkdir(base_path, 0755);
+
+    fp = popen("swift list", "r");
+    if (fp == NULL) return;
+
+    printf("--- Initialisation : %s ---\n", base_path);
     while (fgets(container_name, sizeof(container_name), fp) != NULL) {
-        // Enlever le saut de ligne (\n) pour avoir un nom de dossier propre
         container_name[strcspn(container_name, "\n")] = 0;
 
         if (strlen(container_name) > 0) {
+            char full_folder_path[1024];
+            snprintf(full_folder_path, sizeof(full_folder_path), "%s/%s", base_path, container_name);
+
             struct stat st = {0};
-            // Vérifier si le dossier existe, sinon le créer
-            if (stat(container_name, &st) == -1) {
-                if (mkdir(container_name, 0755) == 0) {
-                    printf("[INIT] Dossier créé : %s\n", container_name);
-                } else {
-                    perror("[ERREUR] Impossible de créer le dossier");
-                }
-            } else {
-                printf("[INIT] Dossier déjà existant : %s\n", container_name);
+            if (stat(full_folder_path, &st) == -1) {
+                mkdir(full_folder_path, 0755);
+                printf("[INIT] Dossier créé : %s\n", container_name);
             }
         }
     }
-    printf("--- Fin de l'initialisation ---\n\n");
     pclose(fp);
 }

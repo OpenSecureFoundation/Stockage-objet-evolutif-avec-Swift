@@ -5,48 +5,55 @@
 #include "init.h"
 #include "monitor.h"
 
-#define MAX_CONTAINERS 50 
-
 int main() {
-    setup_containers();
-
-    // ALLOCATION DYNAMIQUE au lieu de FolderState states[50]
-    FolderState *states = malloc(sizeof(FolderState) * MAX_CONTAINERS);
-    if (states == NULL) {
-        fprintf(stderr, "Erreur : Impossible d'allouer la mémoire.\n");
+    char *home = getenv("HOME");
+    if (home == NULL) {
+        fprintf(stderr, "Erreur : Impossible de trouver la variable HOME.\n");
         return 1;
     }
-    
-    // Initialiser la mémoire à zéro
+
+    // Initialisation physique des dossiers dans Documents/Syncora
+    setup_containers();
+
+    // Allocation dynamique (Heap) pour éviter le Segfault
+    FolderState *states = malloc(sizeof(FolderState) * MAX_CONTAINERS);
+    if (!states) {
+        perror("Erreur allocation mémoire");
+        return 1;
+    }
     memset(states, 0, sizeof(FolderState) * MAX_CONTAINERS);
 
-    int count = 0;
     FILE *fp = popen("swift list", "r");
     if (!fp) {
+        perror("Erreur swift list");
         free(states);
         return 1;
     }
 
+    int count = 0;
     char name[256];
     while (fgets(name, sizeof(name), fp) && count < MAX_CONTAINERS) {
         name[strcspn(name, "\n")] = 0;
         if (strlen(name) > 0) {
-            strncpy(states[count].folder_name, name, 255);
-            states[count].previous_count = 0; 
+            // Utilisation sécurisée de sizeof pour folder_name (1024 octets)
+            snprintf(states[count].folder_name, sizeof(states[count].folder_name), 
+                     "%s/Documents/Syncora/%s", home, name);
+            states[count].previous_count = 0;
             count++;
         }
     }
     pclose(fp);
 
-    printf("=== SYNCORA V2 : SURVEILLANCE DE %d DOSSIERS ===\n", count);
+    printf("=== SYNCORA : %d DOSSIERS EN SURVEILLANCE ===\n", count);
+    printf("[INFO] Racine : %s/Documents/Syncora\n", home);
 
     while (1) {
         for (int i = 0; i < count; i++) {
             monitor_directory(&states[i]);
         }
-        sleep(5);
+        sleep(5); // Cycle de 5 secondes
     }
 
-    free(states); // Toujours libérer ce qu'on a alloué
+    free(states);
     return 0;
 }
