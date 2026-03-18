@@ -4,7 +4,7 @@
 #include <time.h>
 
 #define MAX_FILES 1024
-#define MAX_CONTAINERS 50
+#define MAX_CONTAINERS 100 
 
 typedef struct {
     char name[256];
@@ -12,7 +12,7 @@ typedef struct {
 } file_info;
 
 typedef struct {
-    char folder_name[1024]; 
+    char folder_name[1024];
     file_info previous_files[MAX_FILES];
     int previous_count;
 } FolderState;

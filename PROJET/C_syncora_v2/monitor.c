@@ -7,15 +7,9 @@
 #include "swift.h"
 
 void monitor_directory(FolderState *state) {
- 
     const char *full_folder_path = state->folder_name;
     char *container_name = strrchr(full_folder_path, '/');
-    
-    if (container_name) {
-        container_name++; 
-    } else {
-        container_name = (char *)full_folder_path;
-    }
+    container_name = (container_name) ? container_name + 1 : (char *)full_folder_path;
 
     DIR *dir = opendir(full_folder_path);
     if (!dir) return;
@@ -39,6 +33,7 @@ void monitor_directory(FolderState *state) {
     }
     closedir(dir);
 
+    // Détection modifications/ajouts
     for (int i = 0; i < current_count; i++) {
         int found = 0;
         char full_file_path[2048];
@@ -48,7 +43,7 @@ void monitor_directory(FolderState *state) {
             if (strcmp(current_files[i].name, state->previous_files[j].name) == 0) {
                 found = 1;
                 if (current_files[i].last_modified != state->previous_files[j].last_modified) {
-                    printf("[MODIF] %s dans %s\n", current_files[i].name, container_name);
+                    printf("[MODIF] %s\n", current_files[i].name);
                     swift_upload(container_name, full_file_path); 
                 }
                 break;
@@ -56,11 +51,12 @@ void monitor_directory(FolderState *state) {
         }
 
         if (!found) {
-            printf("[NEW] %s dans %s\n", current_files[i].name, container_name);
+            printf("[NEW] %s\n", current_files[i].name);
             swift_upload(container_name, full_file_path); 
         }
     }
 
+    // Détection suppressions
     for (int i = 0; i < state->previous_count; i++) {
         int found = 0;
         for (int j = 0; j < current_count; j++) {
@@ -69,9 +65,8 @@ void monitor_directory(FolderState *state) {
                 break;
             }
         }
-
         if (!found) {
-            printf("[DEL] %s de %s\n", state->previous_files[i].name, container_name);
+            printf("[DEL] %s\n", state->previous_files[i].name);
             swift_delete(container_name, state->previous_files[i].name);
         }
     }
