@@ -2,39 +2,49 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#include <unistd.h> // Pour chdir
 #include "init.h"
+#include "swift.h"
 
 void setup_containers() {
-    FILE *fp;
-    char container_name[256];
-    char base_path[512];
-    
     char *home = getenv("HOME");
-    if (home == NULL) {
-        fprintf(stderr, "Erreur : Impossible de trouver le dossier personnel.\n");
-        return;
-    }
+    if (!home) return;
 
+    char base_path[1024];
     snprintf(base_path, sizeof(base_path), "%s/Documents/Syncora", home);
-
+    
+    // Créer le répertoire racine Syncora s'il n'existe pas
     mkdir(base_path, 0755);
 
-    fp = popen("swift list", "r");
-    if (fp == NULL) return;
+    // Lister les conteneurs sur Swift
+    FILE *fp = popen("swift list", "r");
+    if (!fp) return;
 
-    printf("--- Initialisation : %s ---\n", base_path);
+    char container_name[256];
+    char current_dir[1024];
+    getcwd(current_dir, sizeof(current_dir)); // Sauvegarder le répertoire actuel
+
     while (fgets(container_name, sizeof(container_name), fp) != NULL) {
         container_name[strcspn(container_name, "\n")] = 0;
 
-        if (strlen(container_name) > 0) {
-            char full_folder_path[1024];
-            snprintf(full_folder_path, sizeof(full_folder_path), "%s/%s", base_path, container_name);
+        // On ignore les conteneurs de versions et les lignes vides
+        if (strlen(container_name) > 0 && strstr(container_name, "_versions") == NULL) {
+            char full_path[2048];
+            snprintf(full_path, sizeof(full_path), "%s/%s", base_path, container_name);
+            
+            // 1. Créer le dossier local
+            mkdir(full_path, 0755);
+            printf("[INIT] Synchronisation du conteneur : %s\n", container_name);
 
-            struct stat st = {0};
-            if (stat(full_folder_path, &st) == -1) {
-                mkdir(full_folder_path, 0755);
-                printf("[INIT] Dossier créé : %s\n", container_name);
+            // 2. Aller dans ce dossier pour télécharger les fichiers
+            if (chdir(full_path) == 0) {
+                char download_cmd[512];
+                // On télécharge tout le contenu du conteneur Swift vers le local
+                snprintf(download_cmd, sizeof(download_cmd), "swift download %s > /dev/null 2>&1", container_name);
+                system(download_cmd);
+                
+                // Revenir au répertoire de base pour la suite de la boucle
+                chdir(current_dir);
             }
         }
     }
