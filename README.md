@@ -42,4 +42,4 @@ Configurer le fichier /etc/hosts en ajoutant le ligne :
 
 # NB : 
     1. Un exemple du fichier de configuration des variables d'environnement est present dans le dossier config a la racine du projet.
-    2. Le fichier de service : syncora.service est present dans le dossier config du repository.
+    2. Le fichier de service : syncora.service est present dans le dossier config du repository
